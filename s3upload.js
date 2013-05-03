@@ -1,4 +1,3 @@
-
 var s3upload = (function(){
 var initialize = function(evt){
   	
@@ -32,8 +31,9 @@ var initialize = function(evt){
 
 	       	var request = new XMLHttpRequest();
 	       	request.withCredentials = true;
-	       	request.open("POST", "http://fuuzik.s3.amazonaws.com/mixes/"+parseUtils.curr().id+"/?uploads", true);	      	request.setRequestHeader("Authorization", "AWS AKIAI3ZBUSGL7QRFHA2Q:"+data.s3Signature+"");
-	  		request.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
+	       	request.open("POST", "http://fuuzik.s3.amazonaws.com/mixes/"+parseUtils.curr().id+"/?uploads", true);	      
+	       	request.setRequestHeader("Authorization", "AWS AWSID:"+data.s3Signature+"");
+	  	request.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
 	      	request.setRequestHeader("Content-Type","binary/octel-stream");
 	      	request.onload = that.response;
 	       	request.send();
