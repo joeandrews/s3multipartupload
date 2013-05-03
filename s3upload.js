@@ -10,13 +10,11 @@ var initialize = function(evt){
 		//on response start sending chuncks
 		//save chunk ids with chunk numbers as private table.
 		that.response = function(){
-			console.log(this);
-			
 			uploads3.id = this.responseXML.getElementsByTagName("UploadId")[0].childNodes[0].nodeValue;
 		};
 		
 		that.setup =(function(){
-
+			//custom certification goes here, currently developing a node module to handle this.
 			$.ajax({
             url: "/certif/"+parseUtils.curr().id+"",
             dataType: "JSON",
