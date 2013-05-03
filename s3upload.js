@@ -48,7 +48,7 @@ var initialize = function(evt){
 		})();
 		that.upload = function(blob){
 			var send = new XMLHttpRequest();
-			request.open("POST",)
+			send.open("POST","http://fuuzik.s3.amazonaws.com/mixes/"+parseUtils.curr().id+"/?partNumber="+blob.index+"&uploadId="+blob.parentid+" HTTP/1.1", true);	
 		};
 		// called when a file is selected so this points to the event
 		that.startupload = function(){
