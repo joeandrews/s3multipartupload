@@ -1,6 +1,7 @@
+// new s3upload() to be called on event change of file input
 var s3upload = (function(){
 var initialize = function(evt){
-  	
+		
 		var upload = {
 
 		};	
@@ -31,9 +32,9 @@ var initialize = function(evt){
 
 	       	var request = new XMLHttpRequest();
 	       	request.withCredentials = true;
-	       	request.open("POST", "http://fuuzik.s3.amazonaws.com/mixes/"+parseUtils.curr().id+"/?uploads", true);	      
-	       	request.setRequestHeader("Authorization", "AWS AWSID:"+data.s3Signature+"");
-	  	request.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
+	       	request.open("POST", "http://fuuzik.s3.amazonaws.com/mixes/"+parseUtils.curr().id+"/?uploads", true);	      	
+	       	request.setRequestHeader("Authorization", "AWS "+data.s3Key+":"+data.s3Signature+"");
+	  		request.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
 	      	request.setRequestHeader("Content-Type","binary/octel-stream");
 	      	request.onload = that.response;
 	       	request.send();
@@ -101,7 +102,7 @@ pause:function(){
 //pauses this upload
 },
 cancel:function(){
-//cancels the upload and delets data from s3.
+//cancels the upload and deletes data from s3.
 
 }
 }
