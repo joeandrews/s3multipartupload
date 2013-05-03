@@ -2,7 +2,7 @@
 var s3upload = (function(){
 var initialize = function(evt){
 		
-		var upload = {
+		var uploads3 = {
 
 		};	
 		var that = this;
@@ -11,8 +11,8 @@ var initialize = function(evt){
 		//save chunk ids with chunk numbers as private table.
 		that.response = function(){
 			console.log(this);
-			upload.document = this.responseXML;
-			upload.id = upload.document.getElementsByTagName("UploadId")[0].childNodes[0].nodeValue;
+			
+			uploads3.id = this.responseXML.getElementsByTagName("UploadId")[0].childNodes[0].nodeValue;
 		};
 		
 		that.setup =(function(){
@@ -32,7 +32,7 @@ var initialize = function(evt){
 
 	       	var request = new XMLHttpRequest();
 	       	request.withCredentials = true;
-	       	request.open("POST", "http://fuuzik.s3.amazonaws.com/mixes/"+parseUtils.curr().id+"/?uploads", true);	      	
+	       	request.open("POST", "http://"+data.s3Policy.conditions[0].bucket+".s3.amazonaws.com/mixes/?uploads", true);	      	
 	       	request.setRequestHeader("Authorization", "AWS "+data.s3Key+":"+data.s3Signature+"");
 	  		request.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
 	      	request.setRequestHeader("Content-Type","binary/octel-stream");
@@ -48,18 +48,25 @@ var initialize = function(evt){
 		})();
 		that.upload = function(blob){
 			var send = new XMLHttpRequest();
-			send.open("POST","http://fuuzik.s3.amazonaws.com/mixes/"+parseUtils.curr().id+"/?partNumber="+blob.index+"&uploadId="+blob.parentid+" HTTP/1.1", true);	
+			send.open("POST","http://"+data.s3Policy.conditions[0].bucket+".s3.amazonaws.com/mixes/?partNumber="+blob.index+"&uploadId="+blob.parentid+" HTTP/1.1", true);	
 		};
 		// called when a file is selected so this points to the event
 		that.startupload = function(){
+
 		that.file = this.files[0];	
 		that.BYTES_PER_CHUNK = 1024 * 1024; // 1MB chunk sizes.
-  		that.SIZE = blob.size;
+  		that.SIZE = that.file.size;
   		that.start = 0;
   		that.end = BYTES_PER_CHUNK;
 
   		while(that.start < that.SIZE) {
-    		that.upload(blob.slice(that.start, that.end));
+
+    		that.upload({
+    			blob:that.file.slice(that.start, that.end),
+    			index:"",
+    			parentid:uploads3.id
+
+    		});
 			that.start = that.end;
     		that.end = that.start + that.BYTES_PER_CHUNK;
     	};	
