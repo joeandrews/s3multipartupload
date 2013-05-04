@@ -11,22 +11,17 @@ var initialize = function(evt){
 		//save chunk ids with chunk numbers as private table.
 		that.response = function(){
 			uploads3.id = this.responseXML.getElementsByTagName("UploadId")[0].childNodes[0].nodeValue;
+			this.startupload();
 		};
 		
-		that.setup =(function(){
+		that.setup =function(){
+			that.file = this.files[0];	
 			//custom certification goes here, currently developing a node module to handle this.
 			$.ajax({
             url: "/certif/"+parseUtils.curr().id+"",
             dataType: "JSON",
             success: function(data){
-            	console.log(data);
-	            var post = {
-	            "AWSAccessKeyId": data.s3Key,
-	            "key": "mixes/"+parseUtils.curr().id + "/",
-	            "acl": "public-read",
-	            "policy": data.s3PolicyBase64,
-	            "signature": data.s3Signature
-	        	};
+            that.data = data;	
 
 	       	var request = new XMLHttpRequest();
 	       	request.withCredentials = true;
@@ -43,15 +38,43 @@ var initialize = function(evt){
                 console.log("ERROR: " + error + " status: " + status + " response: " + res);
             }
         });
-		})();
-		that.upload = function(blob){
+		};
+		//send each chunk
+		that.eachchunk = function(blob){
+			
 			var send = new XMLHttpRequest();
-			send.open("POST","http://"+data.s3Policy.conditions[0].bucket+".s3.amazonaws.com/mixes/?partNumber="+blob.index+"&uploadId="+blob.parentid+" HTTP/1.1", true);	
+			send.open("POST","http://"+that.data.s3Policy.conditions[0].bucket+".s3.amazonaws.com/mixes/?partNumber="+blob.index+"&uploadId="+blob.parentid+" HTTP/1.1", true);
+			send.setRequestHeader("Authorization", "AWS "+that.data.s3Key+":"+that.data.s3Signature+"");
+	  		send.setRequestHeader("X-Amz-Date" , that.data.s3Policy.expires);
+	      	send.setRequestHeader("Content-Type","binary/octel-stream");
+			send.onload = function(){
+				that.chunks[blob.index] = blob;
+				that.chunks[blob.index].etag = this.responseXML.getElementsByTagName("ETag")[0].childNodes[0].nodeValue;
+			};
+			send.send(blob.blob);	
+		};
+		that.chunks = [];
+
+		that.complete = function(){
+			var xml = "<CompleteMultipartUpload>";
+			for (var i = 0; i < that.chunks.length; i++) {
+				xml = xml+"<Part><PartNumber>"+i+"</PartNumber><ETag>"+that.chunks[i].etag+"</ETag></Part>";
+				
+			};
+			xml = xml+ "</CompleteMultipartUpload>";
+			var complete = new XMLHttpRequest();
+				complete.open("POST", "http://"+data.s3Policy.conditions[0].bucket+".s3.amazonaws.com/mixes/?uploadId="+uploads3.id+"", true);	     
+				complete.setRequestHeader("Authorization", "AWS "+that.data.s3Key+":"+that.data.s3Signature+"");
+		  		complete.setRequestHeader("X-Amz-Date" , that.data.s3Policy.expires);
+		      	complete.setRequestHeader("Content-Type","binary/octel-stream");
+				complete.onload = function(){
+					console.log(this.responseXML);
+				};
+				complete.send();	
 		};
 		// called when a file is selected so this points to the event
 		that.startupload = function(){
 
-		that.file = this.files[0];	
 		that.BYTES_PER_CHUNK = 1024 * 1024; // 1MB chunk sizes.
   		that.SIZE = that.file.size;
   		that.start = 0;
@@ -59,7 +82,7 @@ var initialize = function(evt){
 
   		while(that.start < that.SIZE) {
 
-    		that.upload({
+    		that.eachchunk({
     			blob:that.file.slice(that.start, that.end),
     			index:"",
     			parentid:uploads3.id
