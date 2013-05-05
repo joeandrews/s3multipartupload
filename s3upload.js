@@ -12,30 +12,33 @@ var initialize = function(evt){
 		that.response = function(){
 			console.log(this.responseXML);
 			uploads3.id = this.responseXML.getElementsByTagName("UploadId")[0].childNodes[0].nodeValue;
-			this.startupload();
+			that.startupload();
 		};
 		
 		that.setup =function(){
-			//that.file = this.files[0];	
+			console.log(this);
+			that.file = this.files[0];	
+			console.log(that.file);
 			//custom certification goes here, currently developing a node module to handle this.
-			
+			that.uploadoptions = {
+            	type:"POST",
+            	path:"/mixes/"+urlEncode(that.file.name)+"?uploads",
+            	datatype:"binary/octel-stream",
+            	bucket:"fuuzik"
+            };
 			$.ajax({
             url: "/certif",
             dataType: "JSON",
             type:"POST",
             contentType: "application/json",
-            data:JSON.stringify({
-            	type:"POST",
-            	path:"/fuuzik/mixes/?uploads",
-            	datatype:"binary/octel-stream"
-            }),
+            data:JSON.stringify(that.uploadoptions),
             success: function(data){
             	console.log(data);
             that.data = data;	
 
 	       	var request = new XMLHttpRequest();
 	       	request.withCredentials = true;
-	       	request.open("POST", "http://"+data.s3Policy.conditions[0].bucket+".s3.amazonaws.com/mixes/?uploads", true);	      	
+	       	request.open("POST", "http://"+data.s3Policy.conditions[0].bucket+".s3.amazonaws.com"+that.uploadoptions.path+"", true);	      	
 	       	request.setRequestHeader("Authorization", "AWS "+data.s3Key+":"+data.s3Signature+"");
 	  		request.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
 	      	request.setRequestHeader("Content-Type","binary/octel-stream");
@@ -53,7 +56,7 @@ var initialize = function(evt){
 		that.eachchunk = function(blob){
 			
 			var send = new XMLHttpRequest();
-			send.open("POST","http://"+that.data.s3Policy.conditions[0].bucket+".s3.amazonaws.com/mixes/?partNumber="+blob.index+"&uploadId="+blob.parentid+" HTTP/1.1", true);
+			send.open("POST","http://"+that.data.s3Policy.conditions[0].bucket+".s3.amazonaws.com"+that.uploadoptions.path+"?partNumber="+blob.index+"&uploadId="+blob.parentid+" HTTP/1.1", true);
 			send.setRequestHeader("Authorization", "AWS "+that.data.s3Key+":"+that.data.s3Signature+"");
 	  		send.setRequestHeader("X-Amz-Date" , that.data.s3Policy.expires);
 	      	send.setRequestHeader("Content-Type","binary/octel-stream");
@@ -73,7 +76,7 @@ var initialize = function(evt){
 			};
 			xml = xml+ "</CompleteMultipartUpload>";
 			var complete = new XMLHttpRequest();
-				complete.open("POST", "http://"+data.s3Policy.conditions[0].bucket+".s3.amazonaws.com/mixes/?uploadId="+uploads3.id+"", true);	     
+				complete.open("POST", "http://"+data.s3Policy.conditions[0].bucket+".s3.amazonaws.com"+that.uploadoptions.path+"?uploadId="+uploads3.id+"", true);	     
 				complete.setRequestHeader("Authorization", "AWS "+that.data.s3Key+":"+that.data.s3Signature+"");
 		  		complete.setRequestHeader("X-Amz-Date" , that.data.s3Policy.expires);
 		      	complete.setRequestHeader("Content-Type","binary/octel-stream");
@@ -87,20 +90,26 @@ var initialize = function(evt){
 
 			that.BYTES_PER_CHUNK = 1024 * 1024; // 1MB chunk sizes.
 	  		that.SIZE = that.file.size;
+	  		that.nochunks = Math.round(that.file.size/that.BYTES_PER_CHUNK);
 	  		that.start = 0;
-	  		that.end = BYTES_PER_CHUNK;
+	  		that.end = that.BYTES_PER_CHUNK;
 
-	  		while(that.start < that.SIZE) {
-
-	    		that.eachchunk({
-	    			blob:that.file.slice(that.start, that.end),
-	    			index:null,
+	  		for (var i = 0; i < that.nochunks; i++) {
+	  		that.chunks.push({
+	    			blob:that.file.slice((i*that.BYTES_PER_CHUNK), (i+1)*that.BYTES_PER_CHUNK),
+	    			index:i,
 	    			parentid:uploads3.id
 
 	    		});
-				that.start = that.end;
-	    		that.end = that.start + that.BYTES_PER_CHUNK;
-	    	};	
+			that.eachchunk({
+	    			blob:that.file.slice((i*that.BYTES_PER_CHUNK), (i+1)*that.BYTES_PER_CHUNK),
+	    			index:i,
+	    			parentid:uploads3.id
+
+	    		});
+
+	  				};
+	  			
 		};
 
 
