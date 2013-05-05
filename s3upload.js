@@ -10,17 +10,27 @@ var initialize = function(evt){
 		//on response start sending chuncks
 		//save chunk ids with chunk numbers as private table.
 		that.response = function(){
+			console.log(this.responseXML);
 			uploads3.id = this.responseXML.getElementsByTagName("UploadId")[0].childNodes[0].nodeValue;
 			this.startupload();
 		};
 		
 		that.setup =function(){
-			that.file = this.files[0];	
+			//that.file = this.files[0];	
 			//custom certification goes here, currently developing a node module to handle this.
+			
 			$.ajax({
-            url: "/certif/"+parseUtils.curr().id+"",
+            url: "/certif",
             dataType: "JSON",
+            type:"POST",
+            contentType: "application/json",
+            data:JSON.stringify({
+            	type:"POST",
+            	path:"/fuuzik/mixes/?uploads",
+            	datatype:"binary/octel-stream"
+            }),
             success: function(data){
+            	console.log(data);
             that.data = data;	
 
 	       	var request = new XMLHttpRequest();
@@ -34,7 +44,7 @@ var initialize = function(evt){
 
             },
             error: function (res, status, error) {
-                //do some error handling here
+                console.log(res);
                 console.log("ERROR: " + error + " status: " + status + " response: " + res);
             }
         });
@@ -75,22 +85,22 @@ var initialize = function(evt){
 		// called when a file is selected so this points to the event
 		that.startupload = function(){
 
-		that.BYTES_PER_CHUNK = 1024 * 1024; // 1MB chunk sizes.
-  		that.SIZE = that.file.size;
-  		that.start = 0;
-  		that.end = BYTES_PER_CHUNK;
+			that.BYTES_PER_CHUNK = 1024 * 1024; // 1MB chunk sizes.
+	  		that.SIZE = that.file.size;
+	  		that.start = 0;
+	  		that.end = BYTES_PER_CHUNK;
 
-  		while(that.start < that.SIZE) {
+	  		while(that.start < that.SIZE) {
 
-    		that.eachchunk({
-    			blob:that.file.slice(that.start, that.end),
-    			index:"",
-    			parentid:uploads3.id
+	    		that.eachchunk({
+	    			blob:that.file.slice(that.start, that.end),
+	    			index:null,
+	    			parentid:uploads3.id
 
-    		});
-			that.start = that.end;
-    		that.end = that.start + that.BYTES_PER_CHUNK;
-    	};	
+	    		});
+				that.start = that.end;
+	    		that.end = that.start + that.BYTES_PER_CHUNK;
+	    	};	
 		};
 
 
