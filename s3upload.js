@@ -85,6 +85,7 @@ var initialize = function(evt){
 				console.log(this);
 				that.parts = this.responseXML.getElementsByTagName("Part");
 				console.log(this.responseXML);
+				that.complete();
 				
 			};
 			send.send();
@@ -169,7 +170,7 @@ var initialize = function(evt){
             success: function(data){
             	
             var progressFunction = function(e){
-            	console.log((e.loaded/that.SIZE)*100);
+            	console.log((e.loaded/e.total)*100);
 
             };
 			var send = new XMLHttpRequest();
@@ -208,15 +209,16 @@ var initialize = function(evt){
 		};
 		that.chunks = [];
 
-		that.complete = function(parts,path,id){
+		that.complete = function(){
 
+		
 
 			that.uploadoptions = {
             	type:"POST",
-            	path:"/"+path,
+            	path:"/"+upload.getpath(),
             	datatype:"application/xml",
             	bucket:"fuuzik",
-            	endings:"?uploadId="+id
+            	endings:"?uploadId="+upload.getid()
             };
 			$.ajax({
             url: "/certif",
@@ -227,10 +229,10 @@ var initialize = function(evt){
             success: function(data){
             	
             	var xml = "<CompleteMultipartUpload>";
-			for (var i = 0; i < parts.length; i++) {
+			for (var i = 0; i < that.parts.length; i++) {
 				xml = xml+"<Part>";
-				xml = xml+"<PartNumber>"+parts[i].getElementsByTagName("PartNumber")[0].childNodes[0].nodeValue+"</PartNumber>";
-				xml = xml+"<ETag>"+parts[i].getElementsByTagName("ETag")[0].childNodes[0].nodeValue+"</ETag>";
+				xml = xml+"<PartNumber>"+that.parts[i].getElementsByTagName("PartNumber")[0].childNodes[0].nodeValue+"</PartNumber>";
+				xml = xml+"<ETag>"+that.parts[i].getElementsByTagName("ETag")[0].childNodes[0].nodeValue+"</ETag>";
 	
 				xml = xml +"</Part>";
 			};
@@ -259,34 +261,30 @@ var initialize = function(evt){
 		// called when a file is selected so this points to the event
 		that.startupload = function(){
 
-			that.BYTES_PER_CHUNK = 1024 * 1024 * 6; // 1MB chunk sizes.
+			that.BYTES_PER_CHUNK = 1024 * 1024 * 5; // 1MB chunk sizes.
 	  		that.SIZE = that.file.size;
 	  		that.nochunks = Math.round(that.file.size/that.BYTES_PER_CHUNK);
 	  		that.start = 0;
 	  		that.end = that.BYTES_PER_CHUNK;
-
-	  		for (var i = 1; i < that.nochunks+1; i++) {
-	  		if (i<that.nochunks+1) {
-	  			that.eachchunk({
-	    			blob:that.file.slice((i*that.BYTES_PER_CHUNK), (i+1)*that.BYTES_PER_CHUNK),
-	    			index:i,
+	  		that.index = 1;
+	  		 while(that.start < that.SIZE) {
+	  		 	if (that.end> that.SIZE) {
+	  		 		that.end = that.SIZE;
+	  		 	};
+			    that.eachchunk({
+	    			blob:that.file.slice(that.start, that.end),
+	    			index:that.index,
 	    			parentid:uploads3.id,
 	    			size:that.BYTES_PER_CHUNK
 
 	    		});
 
-	  		};
-			
-			if (i ===that.nochunks) {
-				that.eachchunk({
-	    			blob:that.file.slice((i*that.BYTES_PER_CHUNK), that.SIZE),
-	    			index:i,
-	    			parentid:uploads3.id,
-	    			size:that.SIZE-(i*that.BYTES_PER_CHUNK)
-	    		});
-			};
-	  		};
-	  			
+			    that.start = that.end;
+			    that.end = that.start + that.BYTES_PER_CHUNK;
+			    that.index = that.index + 1;
+				
+			  }
+	  
 		};
 
 
