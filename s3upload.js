@@ -331,6 +331,7 @@ cancel:function(){
 return initialize;
 })();
 
+
 function StringtoXML(text){
                 if (window.ActiveXObject){
                   var doc=new ActiveXObject('Microsoft.XMLDOM');
