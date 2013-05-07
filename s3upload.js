@@ -82,10 +82,9 @@ var initialize = function(evt){
 	      	
 	      	
 			send.onload = function(){
-				console.log(this);
+				
 				that.parts = this.responseXML.getElementsByTagName("Part");
-				console.log(this.responseXML);
-				that.complete();
+				
 				
 			};
 			send.send();
@@ -170,31 +169,37 @@ var initialize = function(evt){
             success: function(data){
             	
             var progressFunction = function(e){
-            	console.log((e.loaded/e.total)*100);
-
+            	
+            	this.uprogress = e.loaded;
+            	console.log(that.progress());
             };
-
-			var send = new XMLHttpRequest();
-			send.withCredentials = true;
-			send.open("PUT","http://"+options.bucket+".s3.amazonaws.com"+options.path+options.endings,true);
-			send.setRequestHeader("Authorization", "AWS "+data.s3Key+":"+data.s3Signature);
-	  		send.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
+            var bindxmlhttp = function(xhr){
+            	return function(e){
+            		progressFunction.call(xhr,e);
+            	}
+            }
+			that.chunks[blob.index-1] = new XMLHttpRequest();
+			that.chunks[blob.index-1].blob = blob;
+			that.chunks[blob.index-1].withCredentials = true;
+			that.chunks[blob.index-1].open("PUT","http://"+options.bucket+".s3.amazonaws.com"+options.path+options.endings,true);
+			that.chunks[blob.index-1].setRequestHeader("Authorization", "AWS "+data.s3Key+":"+data.s3Signature);
+	  		that.chunks[blob.index-1].setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
 	      	//rememver to a add expose header
 	      	 
 
-    		send.upload.addEventListener("progress", progressFunction, false);  
-    		
-    		
-
-			send.onload = function(){
+    		that.chunks[blob.index-1].upload.addEventListener("progress", bindxmlhttp(that.chunks[blob.index-1]), false);  
+			that.chunks[blob.index-1].onload = function(){
 
 				//console.log(this.responseXML.getElementsByTagName("ETag")[0].childNodes[0].nodeValue);
-				blob.etag = this.getResponseHeader("ETag");
-				that.chunks.push(blob);
+			that.chunks[blob.index-1].etag = this.getResponseHeader("ETag").toString();
+			that.etag++;
+			if (that.etag =that.chunks.length) {
+				that.complete();
+			};
 	      		
 				
 			};
-			send.send(blob.blob);
+			that.chunks[blob.index-1].send(blob.blob);
 		
 
             },
@@ -205,11 +210,18 @@ var initialize = function(evt){
         });
 	
 		};
+		that.etag = 0;
 		that.chunks = [];
+		that.progress = function(){
+			total = 0;
+			for (var i = 0; i < that.chunks.length; i++) {
+				total = total + that.chunks[i].uprogress;
+			};
+			
+			return (total/that.SIZE)*100;
+		}
 
 		that.complete = function(){
-
-		
 
 			that.uploadoptions = {
             	type:"POST",
@@ -218,6 +230,7 @@ var initialize = function(evt){
             	bucket:"fuuzik",
             	endings:"?uploadId="+upload.getid()
             };
+
 			$.ajax({
             url: "/certif",
             dataType: "JSON",
@@ -227,12 +240,15 @@ var initialize = function(evt){
             success: function(data){
             	
             	var xml = "<CompleteMultipartUpload>";
-			for (var i = 0; i < that.parts.length; i++) {
+			for (var i = 0; i < that.chunks.length; i++) {
+				
 				xml = xml+"<Part>";
-				xml = xml+"<PartNumber>"+that.parts[i].getElementsByTagName("PartNumber")[0].childNodes[0].nodeValue+"</PartNumber>";
-				xml = xml+"<ETag>"+that.parts[i].getElementsByTagName("ETag")[0].childNodes[0].nodeValue+"</ETag>";
+				xml = xml+"<PartNumber>"+that.chunks[i].blob.index+"</PartNumber>";
+				xml = xml+"<ETag>"+that.chunks[i].etag+"</ETag>";
 	
 				xml = xml +"</Part>";
+			
+				
 			};
 			xml = xml+ "</CompleteMultipartUpload>";
 
