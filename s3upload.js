@@ -23,7 +23,17 @@ var initialize = function(evt){
 		};
 		
 		that.setup =function(){
-			console.log(this);
+			
+			var prog = document.createElement('div'); 
+			var bar = document.createElement("div");
+			bar.setAttribute("style","width:0%");
+			bar.setAttribute("class","bar");
+
+			prog.setAttribute("class", "progress progress-striped");
+			prog.appendChild(bar);
+			
+			that.elem = bar;
+			this.parentNode.appendChild(prog);
 			that.file = this.files[0];	
 			console.log(that.file);
 			//custom certification goes here, currently developing a node module to handle this.
@@ -171,7 +181,7 @@ var initialize = function(evt){
             var progressFunction = function(e){
             	
             	this.uprogress = e.loaded;
-            	console.log(that.progress());
+            	that.elem.setAttribute("style","width:"+that.progress()+"%");
             };
             var bindxmlhttp = function(xhr){
             	return function(e){
@@ -180,6 +190,7 @@ var initialize = function(evt){
             }
 			that.chunks[blob.index-1] = new XMLHttpRequest();
 			that.chunks[blob.index-1].blob = blob;
+			that.chunks[blob.index-1].uprogress = 0;
 			that.chunks[blob.index-1].withCredentials = true;
 			that.chunks[blob.index-1].open("PUT","http://"+options.bucket+".s3.amazonaws.com"+options.path+options.endings,true);
 			that.chunks[blob.index-1].setRequestHeader("Authorization", "AWS "+data.s3Key+":"+data.s3Signature);
@@ -193,7 +204,7 @@ var initialize = function(evt){
 				//console.log(this.responseXML.getElementsByTagName("ETag")[0].childNodes[0].nodeValue);
 			that.chunks[blob.index-1].etag = this.getResponseHeader("ETag").toString();
 			that.etag++;
-			if (that.etag =that.chunks.length) {
+			if (that.etag == that.chunks.length) {
 				that.complete();
 			};
 	      		
@@ -213,12 +224,12 @@ var initialize = function(evt){
 		that.etag = 0;
 		that.chunks = [];
 		that.progress = function(){
-			total = 0;
+			var total = 0;
 			for (var i = 0; i < that.chunks.length; i++) {
 				total = total + that.chunks[i].uprogress;
 			};
 			
-			return (total/that.SIZE)*100;
+			return ((total/that.SIZE)*100)||0;
 		}
 
 		that.complete = function(){
