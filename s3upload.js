@@ -173,17 +173,13 @@ var initialize = function(evt){
             	console.log((e.loaded/e.total)*100);
 
             };
+
 			var send = new XMLHttpRequest();
 			send.withCredentials = true;
 			send.open("PUT","http://"+options.bucket+".s3.amazonaws.com"+options.path+options.endings,true);
 			send.setRequestHeader("Authorization", "AWS "+data.s3Key+":"+data.s3Signature);
 	  		send.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
-	      	send.onreadystatechange=function(e){
-	      			console.log(e);
-	      			console.log(this.getAllResponseHeaders());
-	      			that.chunks[blob.index] = blob;
-	      			that.chunks[blob.index].etag = this.getAllResponseHeaders();
-	      	};
+	      	//rememver to a add expose header
 	      	 
 
     		send.upload.addEventListener("progress", progressFunction, false);  
@@ -191,13 +187,15 @@ var initialize = function(evt){
     		
 
 			send.onload = function(){
+
 				//console.log(this.responseXML.getElementsByTagName("ETag")[0].childNodes[0].nodeValue);
-				
+				blob.etag = this.getResponseHeader("ETag");
+				that.chunks.push(blob);
+	      		
 				
 			};
 			send.send(blob.blob);
-
-	       	
+		
 
             },
             error: function (res, status, error) {
@@ -330,7 +328,6 @@ cancel:function(){
 }
 return initialize;
 })();
-
 
 function StringtoXML(text){
                 if (window.ActiveXObject){
