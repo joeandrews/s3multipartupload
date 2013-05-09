@@ -29,7 +29,7 @@ var initialize = function(evt){
 			bar.setAttribute("style","width:0%");
 			bar.setAttribute("class","bar");
 
-			prog.setAttribute("class", "progress progress-striped");
+			prog.setAttribute("class", "progress progress-striped active");
 			prog.appendChild(bar);
 			
 			that.elem = bar;
@@ -182,6 +182,8 @@ var initialize = function(evt){
             	
             	this.uprogress = e.loaded;
             	that.elem.setAttribute("style","width:"+that.progress()+"%");
+            	that.elem.innerHTML = Math.round(that.progress())+"%";
+            	
             };
             var bindxmlhttp = function(xhr){
             	return function(e){
@@ -270,6 +272,10 @@ var initialize = function(evt){
 		  		complete.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
 		      	complete.setRequestHeader("Content-Type","application/xml");
 				complete.onload = function(){
+					if (Math.round(that.progress())==100) {
+            		that.elem.innerHTML = "Upload Complete!"
+            		that.elem.setAttribute("class", "bar bar-success");
+            	};
 					console.log(this.responseXML);
 				};
 				complete.send(StringtoXML(xml));	
@@ -283,29 +289,41 @@ var initialize = function(evt){
         });
 			
 		};
+		that.slice = function(start,end){
+
+			for (var prop in that.file) {
+			    if (!that.file.hasOwnProperty(prop) && prop.indexOf("lice") > -1) {
+
+			    	return that.file[prop](start,end);
+
+			    }else{
+			    	
+			    }
+			}
+		}
 		// called when a file is selected so this points to the event
 		that.startupload = function(){
 
 			that.BYTES_PER_CHUNK = 1024 * 1024 * 5; // 1MB chunk sizes.
 	  		that.SIZE = that.file.size;
 	  		that.nochunks = Math.round(that.file.size/that.BYTES_PER_CHUNK);
-	  		that.start = 0;
+	  		that.startpoint = 0;
 	  		that.end = that.BYTES_PER_CHUNK;
 	  		that.index = 1;
-	  		 while(that.start < that.SIZE) {
+	  		 while(that.startpoint < that.SIZE) {
 	  		 	if (that.end> that.SIZE) {
 	  		 		that.end = that.SIZE;
 	  		 	};
 			    that.eachchunk({
-	    			blob:that.file.slice(that.start, that.end),
-	    			index:that.index,
-	    			parentid:uploads3.id,
-	    			size:that.BYTES_PER_CHUNK
+	    			"blob":that.slice(that.startpoint, that.end),
+	    			"index":that.index,
+	    			"parentid":uploads3.id,
+	    			"size":that.BYTES_PER_CHUNK
 
 	    		});
 
-			    that.start = that.end;
-			    that.end = that.start + that.BYTES_PER_CHUNK;
+			    that.startpoint = that.end;
+			    that.end = that.startpoint+ that.BYTES_PER_CHUNK;
 			    that.index = that.index + 1;
 				
 			  }
