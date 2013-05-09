@@ -68,99 +68,8 @@ var initialize = function(evt){
             }
         });
 		};
-		that.getparts = function(id,path,type){
-			
-			that.uploadoptions = {
-            	type:type,
-            	path:"/"+path.replace(/\s/g, ''),
-            	bucket:"fuuzik",
-            	endings:"?uploadId="+id.replace(/\s/g, '')
-            };
-			$.ajax({
-            url: "/certif",
-            dataType: "JSON",
-            type:"POST",
-            contentType: "application/json",
-            data:JSON.stringify(that.uploadoptions),
-            success: function(data){
-            	
-			var send = new XMLHttpRequest();
-			send.withCredentials = true;
-			send.open(type,"http://"+that.uploadoptions.bucket+".s3.amazonaws.com"+[that.uploadoptions.path]+""+[that.uploadoptions.endings]+"",true);
-			send.setRequestHeader("Authorization", "AWS "+data.s3Key+":"+data.s3Signature+"");
-	  		send.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
-	      	
-	      	
-			send.onload = function(){
-				
-				that.parts = this.responseXML.getElementsByTagName("Part");
-				
-				
-			};
-			send.send();
-	       	
-
-            },
-            error: function (res, status, error) {
-                console.log(res);
-                console.log("ERROR: " + error + " status: " + status + " response: " + res);
-            }
-        });
-	
-		};
-		that.getbuckets = function(){
-			var options = {
-            	type:"GET",
-            	path:"/",
-            	bucket:"fuuzik",
-            	endings:"?uploads"
-            };
-
-			$.ajax({
-            url: "/certif",
-            dataType: "JSON",
-            type:"POST",
-            contentType: "application/json",
-            data:JSON.stringify(options),
-            success: function(data){
-            	
-
-			var send = new XMLHttpRequest();
-			send.withCredentials = true;
-			send.open("GET","http://"+options.bucket+".s3.amazonaws.com"+options.path+""+options.endings+"",true);
-			send.setRequestHeader("Authorization", "AWS "+data.s3Key+":"+data.s3Signature+"");
-	  		send.setRequestHeader("X-Amz-Date" , data.s3Policy.expires);
-	      	
-			send.onload = function(){
-				console.log(this.responseXML);
-				
-				var uploads = this.responseXML.getElementsByTagName("Upload");
-				for (var i = 0; i < uploads.length; i++) {
-				
-					var options = {
-		            	type:"DELETE",
-		            	path:encodeURI("/"+uploads[i].getElementsByTagName("Key")[0].childNodes[0].nodeValue),
-		            	
-		            	bucket:"fuuzik",
-		            	endings:encodeURI("?uploadId="+uploads[i].getElementsByTagName("UploadId")[0].childNodes[0].nodeValue)
-		            };
-		            that.getparts(uploads[i].getElementsByTagName("UploadId")[0].childNodes[0].nodeValue.toString(),uploads[i].getElementsByTagName("Key")[0].childNodes[0].nodeValue.toString(),"DELETE");
-				};
-			
-				
-			};
-			send.send();
-	       	
-
-            },
-            error: function (res, status, error) {
-                console.log(res);
-                console.log("ERROR: " + error + " status: " + status + " response: " + res);
-            }
-        });
-
-		};
-		//send each chunk
+		
+			//send each chunk
 		that.eachchunk = function(blob){
 			var options = {
             	type:"PUT",
@@ -265,7 +174,7 @@ var initialize = function(evt){
 			};
 			xml = xml+ "</CompleteMultipartUpload>";
 
-			console.log(StringtoXML(xml));
+			console.log(that.StringtoXML(xml));
 			var complete = new XMLHttpRequest();
 				complete.open("POST", "http://"+that.uploadoptions.bucket+".s3.amazonaws.com"+[that.uploadoptions.path]+""+[that.uploadoptions.endings]+"",true);	     
 				complete.setRequestHeader("Authorization", "AWS "+data.s3Key+":"+data.s3Signature+"");
@@ -278,7 +187,7 @@ var initialize = function(evt){
             	};
 					console.log(this.responseXML);
 				};
-				complete.send(StringtoXML(xml));	
+				complete.send(that.StringtoXML(xml));	
 	       	
 
             },
@@ -331,9 +240,18 @@ var initialize = function(evt){
 		};
 
 
-		that.signature =function(){
-			//function which gets the correct signature based on the filename
-		};
+		that.StringtoXML = function(text){
+                if (window.ActiveXObject){
+                  var doc=new ActiveXObject('Microsoft.XMLDOM');
+                  doc.async='false';
+                  doc.loadXML(text);
+                } else {
+                  var parser=new DOMParser();
+                  var doc=parser.parseFromString(text,'text/xml');
+                }
+                return doc;
+            };
+ 
 
 
 		
@@ -345,17 +263,6 @@ var initialize = function(evt){
 };
 initialize.prototype = {
 
-upload:function(){
-
-},
-progress:function(){
-
-	//function which returns the progress value as a percent
-},
-whileuploading:function(){
-
-	//function which continually updates with the current progress
-},
 status:function(){
  //returns the current status
 },
@@ -374,14 +281,3 @@ cancel:function(){
 return initialize;
 })();
 
-function StringtoXML(text){
-                if (window.ActiveXObject){
-                  var doc=new ActiveXObject('Microsoft.XMLDOM');
-                  doc.async='false';
-                  doc.loadXML(text);
-                } else {
-                  var parser=new DOMParser();
-                  var doc=parser.parseFromString(text,'text/xml');
-                }
-                return doc;
-            }
